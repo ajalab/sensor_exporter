@@ -1,0 +1,18 @@
+[package]
+name = "sensor_exporter"
+version = "0.1.0"
+authors = ["Koki Kato <koki.kato1994@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+pretty_env_logger = "0.4"
+tokio = { version = "0.2", features = ["macros", "time"] }
+tokio-serial = "4.3.3"
+tokio-util = { version = "0.3", features = ["codec"], default-features = false }
+futures = { version = "0.3", default-features = false }
+warp = "0.2"
+prometheus = "0.8"
+bytes = "0.5"
