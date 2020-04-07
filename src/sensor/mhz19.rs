@@ -2,7 +2,7 @@ use std::io;
 use std::path;
 use std::time;
 
-use bytes::{BufMut, BytesMut};
+use bytes::{Buf, BufMut, BytesMut};
 use futures::SinkExt;
 use tokio::stream::StreamExt;
 use tokio_serial::{Serial, SerialPortSettings};
@@ -82,17 +82,26 @@ impl Decoder for Codec {
     type Error = io::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        if src.len() < 9 {
-            log::trace!("not enough data: {} < 9", src.len());
+        let start_pos = src.as_ref().iter().position(|x| *x == 0xff);
+        let start_pos = if let Some(p) = start_pos {
+            p
+        } else {
+            log::trace!("starting byte is not found");
+            return Ok(None);
+        };
+
+        src.advance(start_pos + 1);
+        if src.len() < 8 {
+            log::trace!("not enough data: {} < 8", src.len());
             return Ok(None);
         }
 
-        let buf = src.split_to(9).to_vec();
+        let buf = src.split_to(8).to_vec();
         log::trace!("got data: {:?}", buf);
         // TODO: checksum
-        if buf[0] == 0xff && buf[1] == 0x86 {
-            let high = buf[2] as u32;
-            let low = buf[3] as u32;
+        if buf[0] == 0x86 {
+            let high = buf[1] as u32;
+            let low = buf[2] as u32;
             Ok(Some((high << 8) + low))
         } else {
             Err(io::Error::new(
