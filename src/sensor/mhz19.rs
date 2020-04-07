@@ -98,15 +98,24 @@ impl Decoder for Codec {
 
         let buf = src.split_to(8).to_vec();
         log::trace!("got data: {:?}", buf);
-        // TODO: checksum
+
         if buf[0] == 0x86 {
-            let high = buf[1] as u32;
-            let low = buf[2] as u32;
-            Ok(Some((high << 8) + low))
+            let checksum = !buf[..7].iter().fold(0u8, |acc, &x| acc.wrapping_add(x)) + 1;
+            if checksum == buf[7] {
+                let high = buf[1] as u32;
+                let low = buf[2] as u32;
+
+                Ok(Some((high << 8) + low))
+            } else {
+                Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("checksum {} doesn't match {}", checksum, buf[7]),
+                ))
+            }
         } else {
             Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("invalid data: {:?}", buf),
+                format!("unknown command: {}", buf[0]),
             ))
         }
     }
